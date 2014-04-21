@@ -43,4 +43,5 @@ test-suite spec
       base    == 4.*
     , codesearch
     , bytestring
+    , containers
     , hspec   >= 1.3

@@ -1,16 +1,23 @@
 module CodeSearch.Index
-  ( buildNgrams
+  ( buildIndex
   ) where
 
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import           Data.Map        (Map)
-import qualified Data.Map        as Map
+import           Control.Applicative ((<$>), (<*>))
+import           Data.ByteString     (ByteString, drop, length, take)
+import           Data.Map.Strict     (Map, alter, empty)
+import           Data.Set            (Set, insert, singleton)
+import           Prelude             hiding (drop, length, take)
 
-asdkljha asdfkljh
+buildIndex :: ByteString -> Map ByteString (Set Int)
+buildIndex = buildIndex' empty 0
 
-buildNgrams :: ByteString -> [(ByteString, Int)]
-buildNgrams = go 0
-  where
-    go c xs | BS.length xs < 3 = []
-            | otherwise        = (BS.take 3 xs, c) : go (c + 1) (BS.drop 1 xs)
+buildIndex' :: Map ByteString (Set Int) -- The accumulated posting list
+            -> Int                      -- The current column
+            -> ByteString               -- The remaining bytestring
+            -> Map ByteString (Set Int) -- The final posting list
+buildIndex' m c xs
+  | length xs < 3 = m
+  | otherwise     = buildIndex' (update m) (c + 1) (drop 1 xs)
+    where
+      update = alter (Just . add c) (take 3 xs)
+      add = maybe <$> singleton <*> insert

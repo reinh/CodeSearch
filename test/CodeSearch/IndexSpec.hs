@@ -2,15 +2,22 @@
 
 module CodeSearch.IndexSpec (main, spec) where
 
-import Test.Hspec
-import CodeSearch.Index
-import Data.ByteString ()
+import           CodeSearch.Index
+
+import           Data.ByteString  ()
+import qualified Data.Map.Strict  as Map
+import qualified Data.Set         as Set
+import           Test.Hspec
 
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "buildNgrams" $ do
-    it "converts a bytestring into ngrams" $ do
-      buildNgrams "abcd" `shouldBe` [("abc", 0), ("bcd", 1)]
+  describe "buildIndex" $ do
+    it "converts a bytestring into an index Map" $ do
+      buildIndex "abcabc" `shouldBe` Map.fromList
+        [("abc", Set.fromList [0,3])
+        ,("bca", Set.fromList [1])
+        ,("cab", Set.fromList [2])
+        ]
