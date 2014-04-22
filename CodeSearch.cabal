@@ -49,3 +49,4 @@ test-suite spec
     , bytestring
     , containers
     , hspec   >= 1.3
+    , QuickCheck
