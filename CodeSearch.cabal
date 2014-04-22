@@ -23,10 +23,14 @@ library
   exposed-modules:
       CodeSearch
     , CodeSearch.Index
+    , CodeSearch.Result
   build-depends:
       base    == 4.*
     , bytestring
     , containers
+    , lens
+    , reducers
+    , semigroups
   default-language:
       Haskell2010
 
