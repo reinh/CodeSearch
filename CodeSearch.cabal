@@ -22,8 +22,13 @@ library
       src
   exposed-modules:
       CodeSearch
+    , CodeSearch.Expr
     , CodeSearch.Index
+    , CodeSearch.Regexp
     , CodeSearch.Result
+    , CodeSearch.Shrink
+    , CodeSearch.Types
+    , CodeSearch.Util
   build-depends:
       base    == 4.*
     , bytestring
