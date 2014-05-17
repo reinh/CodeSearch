@@ -1,58 +1,46 @@
 module CodeSearch.Index
-  ( buildIndex
-  , queryIndex
+  ( Index
+  , DocIndex
+  , singleton
+  , mapIndex
   ) where
 
 import           CodeSearch.Types
 
-import           Control.Applicative ((<$>), (<*>))
-import           Data.ByteString     (ByteString, drop, length, take)
-import           Data.Map.Strict     (Map, alter, empty, unionWith, union)
-import qualified Data.Map.Strict     as Map
-import           Data.Set            (Set, insert, singleton)
-import qualified Data.Set            as Set
-import           Prelude             hiding (drop, length, take)
-import Data.List (foldl')
+import           Control.Lens    hiding (Index)
+import           Data.Map.Strict (Map, union)
+import qualified Data.Map.Strict as Map
+import           Data.Maybe      (fromMaybe)
+import           Data.Monoid
+import           Data.Set        (Set)
+import qualified Data.Set        as Set
+import           Data.Text       (Text, drop, length, take)
+import           Prelude         hiding (drop, length, take)
 
-type Index = Map Trigram DocIndex
+type DocIndex = Index Document
 
-type DocIndex = Map Document TrigramIndex
+type Trigram = Text
 
-type Trigram = ByteString
-type TrigramIndex = Set Int
+newtype Index a = Index (Map Trigram (Set a))
+  deriving (Eq, Show, Read)
 
-newtype QueryResult a = QueryResult (Maybe a)
-  deriving (Eq,Ord,Show,Read)
+mapIndex :: Ord b => (a -> b) -> Index a -> Index b
+mapIndex f (Index idx) = Index $ (Map.map . Set.map) f idx
 
-queryIndex :: Index -> Trigram -> Maybe DocIndex
-queryIndex = flip Map.lookup
+instance Monoid (Index a) where
+  mempty = Index Map.empty
+  mappend (Index idx) (Index idx') = Index (idx `union` idx')
 
-buildIndex :: [(Document,ByteString)] -> Index
-buildIndex = foldl' go empty
+singleton :: Document -> Text -> DocIndex
+singleton = addToIndex mempty
+
+queryIndex :: DocIndex -> Trigram -> Set Document
+queryIndex (Index idx) tri = fromMaybe Set.empty (Map.lookup tri idx)
+
+addToIndex :: DocIndex -> Document -> Text -> DocIndex
+addToIndex idx doc txt | length trigram < 3 = idx
+                       | otherwise = addToIndex (idx <> single) doc nexts
   where
-    go m (d,bs) = unionWith union m (buildPartialIndex d bs)
-
-buildPartialIndex :: Document -> ByteString -> Index
-buildPartialIndex doc bs = invert doc (buildTrigramIndex bs)
-
-invert :: Ord b => a -> Map b c -> Map b (Map a c)
-invert = flip Map.foldlWithKey empty . go
-  where
-    go :: Ord b => a -> Map b (Map a c) -> b -> c -> Map b (Map a c)
-    go a m b c = Map.insert b (Map.singleton a c) m
-
-buildTrigramIndex :: ByteString -> Map Trigram TrigramIndex
-buildTrigramIndex = buildTrigramIndex' empty 0
-
-buildTrigramIndex' :: Map Trigram TrigramIndex -- The accumulated posting list
-                   -> Int                      -- The current column
-                   -> ByteString               -- The remaining bytestring
-                   -> Map Trigram TrigramIndex -- The final posting list
-buildTrigramIndex' m c xs
-  | length xs  < 3 = m
-  | otherwise     = buildTrigramIndex' (update m) (c + 1) (drop 1 xs)
-    where
-      update = alter (Just . add c) (take 3 xs)
-      add = maybe <$> singleton <*> insert
-
-
+    trigram = take 3 txt
+    nexts   = drop 1 txt
+    single  = Index (Map.singleton trigram (Set.singleton doc))
