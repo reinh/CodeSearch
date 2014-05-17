@@ -1,5 +1,5 @@
 module CodeSearch.Expr
-  ( reduceExpr
+  ( shrinkExpr
   , emptyable
   , exact
   , prefix
@@ -7,20 +7,19 @@ module CodeSearch.Expr
   , match
   ) where
 
-import CodeSearch.Shrink
-import CodeSearch.Types
-import CodeSearch.Util
+import           CodeSearch.Shrink
+import           CodeSearch.Types
+import           CodeSearch.Util
 
 import           Control.Applicative
 import           Data.Set            (Set, singleton, union)
-import qualified Data.Set            as Set
 
-reduceExpr :: Expr a -> Expr a
-reduceExpr (e `Concat` Empty) = e
-reduceExpr (Empty `Concat` e) = e
-reduceExpr e = e
+shrinkExpr :: RegExpr -> RegExpr
+shrinkExpr (e `Concat` Empty) = e
+shrinkExpr (Empty `Concat` e) = e
+shrinkExpr e = e
 
-emptyable :: Expr a -> Bool
+emptyable :: RegExpr -> Bool
 emptyable Empty           = True
 emptyable (Single     _)  = False
 emptyable (ZeroOrOne  _)  = True
@@ -29,7 +28,7 @@ emptyable (OneOrMore  e)  = emptyable e
 emptyable (Alt    e1 e2)  = emptyable e1 || emptyable e2
 emptyable (Concat e1 e2)  = emptyable e1 && emptyable e2
 
-exact :: Expr Char -> Maybe (Set String)
+exact :: RegExpr -> Maybe (Set String)
 exact Empty          = Just (singleton "")
 exact (Single     c) = Just (singleton [c])
 exact (ZeroOrOne  c) = union (singleton "") <$> exact c
@@ -38,7 +37,7 @@ exact (OneOrMore  _) = Nothing
 exact (Alt    e1 e2) = union <$> exact e1 <*> exact e2
 exact (Concat e1 e2) = cartesian <$> exact e1 <*> exact e2
 
-prefix :: Expr Char -> Set String
+prefix :: RegExpr -> Set String
 prefix Empty          = singleton ""
 prefix (Single     c) = singleton [c]
 prefix (ZeroOrOne  _) = singleton ""
@@ -52,7 +51,7 @@ prefix (Concat e1 e2) =
                   then prefix e1 `union` prefix e2
                   else prefix e1
 
-suffix :: Expr Char -> Set String
+suffix :: RegExpr -> Set String
 suffix Empty          = singleton ""
 suffix (Single     c) = singleton [c]
 suffix (ZeroOrOne  _) = singleton ""
@@ -66,7 +65,7 @@ suffix (Concat e1 e2) =
                   then suffix e2 `union` suffix e1
                   else suffix e2
 
-match :: Expr Char -> TrigramExpr String
+match :: RegExpr -> TrigramQuery
 match = shrinkTrigram . match' -- attempt a single reduction
   where
     match' (OneOrMore r)  = match' r

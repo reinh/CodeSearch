@@ -24,9 +24,10 @@ library
       CodeSearch
     , CodeSearch.Expr
     , CodeSearch.Index
+    , CodeSearch.Query
     , CodeSearch.Regexp
-    , CodeSearch.Result
     , CodeSearch.Shrink
+    , CodeSearch.Trigrams
     , CodeSearch.Types
     , CodeSearch.Util
   build-depends:

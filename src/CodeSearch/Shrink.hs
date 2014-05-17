@@ -6,12 +6,12 @@ module CodeSearch.Shrink
 import           CodeSearch.Types
 import           CodeSearch.Util
 
-import Control.Lens
+import           Control.Lens (transform)
 
-shrinkTrigram :: TrigramExpr String -> TrigramExpr String
+shrinkTrigram :: TrigramQuery -> TrigramQuery
 shrinkTrigram = findFix (transform shrinkTrigramExpr)
 
-shrinkTrigramExpr :: TrigramExpr String -> TrigramExpr String
+shrinkTrigramExpr :: TrigramQuery -> TrigramQuery
 
 -- `Any` is an additive zero for `Or`
 shrinkTrigramExpr (Any `Or`  _  ) = Any
