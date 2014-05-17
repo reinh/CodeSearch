@@ -32,11 +32,11 @@ library
     , CodeSearch.Util
   build-depends:
       base    == 4.*
-    , bytestring
     , containers
     , lens
     , reducers
     , semigroups
+    , text
   default-language:
       Haskell2010
 
