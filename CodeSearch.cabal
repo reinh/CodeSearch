@@ -37,6 +37,7 @@ library
     , lens
     , reducers
     , semigroups
+    , Cabal
   default-language:
       Haskell2010
 

@@ -4,17 +4,22 @@ module CodeSearch.Types.Document
   ( Document(..)
   ) where
 
-import           Control.Lens
-import           Data.ByteString (ByteString)
+import Distribution.Package
+import Distribution.Version
+--import           Control.Lens
+--import           Data.ByteString (ByteString)
 
-newtype Document = Document { _path :: FilePath }
+type Repo = String
+
+data Document = Document { _repo :: Repo, _pName :: PackageName, _pVersion :: Version, _path :: FilePath }
   deriving (Eq,Ord,Show,Read)
 
-makeLenses ''Document
-
+--makeLenses ''Document
+{-
 data DocumentResult = DocumentResult
   { _document :: Document
   , _locations :: [Int]
   }
 
 makeLenses ''DocumentResult
+-}
