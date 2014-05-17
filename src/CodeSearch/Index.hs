@@ -38,10 +38,10 @@ queryIndex :: DocIndex -> Trigram -> Set Document
 queryIndex (Index idx) tri = fromMaybe Set.empty (Map.lookup tri idx)
 
 addToIndex :: DocIndex -> Document -> Text -> DocIndex
-addToIndex (Index idx) doc txt = add
+addToIndex idx doc txt = add
   where
+    add | length trigram < 3 = idx
+        | otherwise = addToIndex (idx <> single) doc nexts
     trigram = take 3 txt
-    add | length trigram < 3 = Index idx
-        | otherwise = addToIndex (Index $ union idx (Map.singleton trigram (Set.singleton doc)))
-                                 doc
-                                 (drop 1 txt)
+    nexts = drop 1 txt
+    single = Index (Map.singleton trigram (Set.singleton doc))
