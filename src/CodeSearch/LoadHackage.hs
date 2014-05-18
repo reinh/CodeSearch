@@ -26,7 +26,7 @@ import Distribution.Package
 import qualified Codec.Compression.GZip as GZip
 import CodeSearch.Index (DocIndex)
 import qualified CodeSearch.Index as Index
-import System.FilePath.Posix (dropFileName, addExtension, joinPath)
+import System.FilePath.Posix (dropFileName, addExtension, joinPath, splitPath, dropTrailingPathSeparator)
 import System.Posix.Files (fileExist, isDirectory, getFileStatus)
 import System.Directory (getDirectoryContents, createDirectoryIfMissing)
 
@@ -110,30 +110,29 @@ explodePackage pn v =
                  Right tx -> [(fp2d (Tar.entryPath e), tx)]
              _ -> []
 
-{-
 
+-- Adapted from cabal-db
 loadAvailablePackages :: IO AvailablePackages
 loadAvailablePackages = do
-    tarFile <- readCabalConfig
-    foldl' mkMap (AvailablePackages M.empty) . listTar . Tar.read <$> L.readFile tarFile
-  where listTar :: Show e => Tar.Entries e -> [([FilePath],L.ByteString)]
+    foldl mkMap (AvailablePackages Map.empty) . listTar . Tar.read <$> BSL.readFile "/home/davean/.cabal/packages/hackage.haskell.org/00-index.tar"
+  where listTar :: Show e => Tar.Entries e -> [[FilePath]]
         listTar (Tar.Next ent nents) =
             case Tar.entryContent ent of
-              Tar.NormalFile bs _ -> (splitPath $ Tar.entryPath ent, bs) : listTar nents
+              Tar.NormalFile bs _ -> (splitPath $ Tar.entryPath ent) : listTar nents
               _                   -> listTar nents
         listTar Tar.Done             = []
         listTar (Tar.Fail err)       = error ("failed: " ++ show err)
-        mkMap :: AvailablePackages -> ([FilePath], L.ByteString) -> AvailablePackages
-        mkMap (AvailablePackages acc) ([(dropTrailingPathSeparator -> packagename),packageVer,_],entBS)
-            | packagename == "." = AvailablePackages acc
-            | otherwise          = AvailablePackages $ tweak (PackageName packagename)
-                                                             (fromString $ dropTrailingPathSeparator packageVer)
-                                                             entBS acc
-                        where tweak !pname !pver !cfile !m = M.alter alterF pname m
-                                  where alterF Nothing  = Just [(pver,cfile)]
-                                        alterF (Just z) = Just ((pver,cfile) : z)
+        mkMap :: AvailablePackages -> [FilePath] -> AvailablePackages
+        mkMap (AvailablePackages acc) ([packagename,packageVer,_])
+            | (dropTrailingPathSeparator packagename) == "." = AvailablePackages acc
+            | otherwise          = AvailablePackages $ tweak (PackageName (dropTrailingPathSeparator packagename))
+                                                             (T.pack $ dropTrailingPathSeparator packageVer) acc
+                        where tweak pname pver m = Map.alter alterF pname m
+                                  where alterF Nothing  = Just (Set.singleton pver)
+                                        alterF (Just z) = Just (Set.insert pver z)
         mkMap nacc _ = nacc
 
+{-
 hackageNew :: IO [(Repo, PackageName, Version)]
 hackageNew = do
     fb <- simpleHttp "http://hackage.haskell.org/packages/recent.rss"
