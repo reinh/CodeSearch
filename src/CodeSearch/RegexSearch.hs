@@ -6,7 +6,9 @@ import           Text.Regex.Base.RegexLike (MatchLength, MatchOffset,
                                             makeRegexM, matchAll)
 import           Text.Regex.TDFA.Text      (Regex)
 
-searchText :: Text -> Text -> Either String [(MatchOffset, MatchLength)]
+searchText :: Text -- ^ The regex
+           -> Text -- ^ the source
+           -> Either String [(MatchOffset, MatchLength)]
 searchText rxpText txt = do
   rxp <- makeRegexM rxpText :: Either String Regex
   return $ fmap (! 0) (matchAll rxp txt)
