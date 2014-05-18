@@ -3,6 +3,7 @@ module CodeSearch.LoadHackage where
 
 import Data.Maybe
 import Data.Text (Text)
+import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans
 import qualified Data.Text as T
@@ -26,10 +27,12 @@ import qualified Codec.Compression.GZip as GZip
 import CodeSearch.Index (DocIndex)
 import qualified CodeSearch.Index as Index
 import System.FilePath.Posix (dropFileName, addExtension, joinPath)
-import System.Posix.Files (fileExist)
+import System.Posix.Files (fileExist, isDirectory, getFileStatus)
 import System.Directory (getDirectoryContents, createDirectoryIfMissing)
 
-newtype AvailablePackages = AvailablePackages { runAvailPackages :: Map PackageName (Set Version) }
+data AvailablePackages =
+    AvailablePackages { runAvailPackages :: Map PackageName (Set Version) }
+  deriving (Show)
 
 ourPackages :: AvailablePackages
 ourPackages =
@@ -42,18 +45,26 @@ ourPackages =
 cabalCache :: FilePath
 cabalCache = "/home/davean/.cabal/packages/hackage.haskell.org/"
 
+ldir :: FilePath -> IO [FilePath]
+ldir dr = (filter (\d -> not $ elem d [".", ".."])) <$> getDirectoryContents dr
+
 downloadedPackages :: IO AvailablePackages
 downloadedPackages = do
-  pns <- getDirectoryContents cabalCache
+  pns <- ldir cabalCache
   ps <- forM pns $ \pn -> do
-    vs <- getDirectoryContents (joinPath [cabalCache, pn])
-    vl <- forM vs $ \ v -> do
-       e <- fileExist (joinPath [cabalCache, pn, v, concat [pn, "-", v]])
-       if e
-       then return (Just v)
-       else return Nothing
-    return (PackageName pn, Set.fromList . map T.pack . catMaybes $ vl)
-  return . AvailablePackages . Map.fromList . filter (not . Set.null . snd) $ ps
+    let pdir = joinPath [cabalCache, pn]
+    ds <- getFileStatus pdir
+    case isDirectory ds of
+      False -> return Nothing
+      True -> do
+        vs <- ldir pdir
+        vl <- forM vs $ \ v -> do
+                            e <- fileExist (joinPath [pdir, v, concat [pn, "-", v]] `addExtension` "tar.gz")
+                            if e
+                            then return (Just v)
+                            else return Nothing
+        return $ Just (PackageName pn, Set.fromList . map T.pack . catMaybes $ vl)
+  return . AvailablePackages . Map.fromList . filter (not . Set.null . snd) . catMaybes $ ps
 
 enumPackages :: Monad m => AvailablePackages -> C.Producer m (PackageName, Version)
 enumPackages ap = 
