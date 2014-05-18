@@ -20,8 +20,6 @@ query idx txt = eitherToMaybe (parseRegexp txt) >>= compile
   where
     compile :: RegExpr -> Maybe (Set Document)
     compile = reduce . fmap (queryIndex idx . pack) . build
-    note str Nothing = Left str
-    note _ (Just x) = Right x
 
 -- Reduce a Query over sets of documents to either a single set or Nothing,
 -- which represents our inability to reduce the search space.

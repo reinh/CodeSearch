@@ -17,6 +17,8 @@ import           Data.Set            (Set, singleton, union)
 shrinkExpr :: RegExpr -> RegExpr
 shrinkExpr (e `Concat` Empty) = e
 shrinkExpr (Empty `Concat` e) = e
+shrinkExpr (e `Alt` Empty) = e
+shrinkExpr (Empty `Alt` e) = e
 shrinkExpr e = e
 
 emptyable :: RegExpr -> Bool
