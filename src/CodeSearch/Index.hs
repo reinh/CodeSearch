@@ -27,9 +27,9 @@ newtype Index a = Index (Map Trigram (Set a))
 mapIndex :: (Ord a, Ord b) => (a -> b) -> Index a -> Index b
 mapIndex f (Index idx) = Index $ (Map.map . Set.map) f idx
 
-instance Monoid (Index a) where
+instance Ord a => Monoid (Index a) where
   mempty = Index mempty
-  mappend (Index idx) (Index idx') = Index (idx <> idx')
+  mappend (Index idx) (Index idx') = Index (Map.unionWith Set.union idx idx')
 
 singleton :: Document -> Text -> DocIndex
 singleton = addToIndex mempty
