@@ -29,8 +29,12 @@ spec = do
               (Single 'd' `Concat` Single 'e' `Concat` Single 'f')
         )
       , ("Conduit",
-          Single 'C' `Concat` Single 'o' `Concat` Single 'n' `Concat`
-          Single 'd' `Concat` Single 'u' `Concat` Single 'i' `Concat`
+          Single 'C' `Concat`
+          Single 'o' `Concat`
+          Single 'n' `Concat`
+          Single 'd' `Concat`
+          Single 'u' `Concat`
+          Single 'i' `Concat`
           Single 't')
       ]
 
