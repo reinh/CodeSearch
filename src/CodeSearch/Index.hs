@@ -8,6 +8,7 @@ module CodeSearch.Index
 
 import           CodeSearch.Types
 
+import           Control.Applicative
 import           Data.Map.Strict  (Map, union)
 import qualified Data.Map.Strict  as Map
 import           Data.Maybe       (fromMaybe)
@@ -16,6 +17,7 @@ import           Data.Set         (Set)
 import qualified Data.Set         as Set
 import           Data.Text        (Text, drop, length, take)
 import           Prelude          hiding (drop, length, take)
+import           Data.Bytes.Serial
 
 type DocIndex = Index Document
 
@@ -23,6 +25,10 @@ type Trigram = Text
 
 newtype Index a = Index (Map Trigram (Set a))
   deriving (Eq, Show, Read)
+
+instance (Ord a, Serial a) => Serial (Index a) where
+  serialize (Index i) = serialize i
+  deserialize = Index <$> deserialize
 
 mapIndex :: (Ord a, Ord b) => (a -> b) -> Index a -> Index b
 mapIndex f (Index idx) = Index $ (Map.map . Set.map) f idx

@@ -22,7 +22,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Distribution.Package
 import qualified Codec.Compression.GZip as GZip
 import CodeSearch.Index (DocIndex)
 import qualified CodeSearch.Index as Index
@@ -31,13 +30,13 @@ import System.Posix.Files (fileExist, isDirectory, getFileStatus)
 import System.Directory (getDirectoryContents, createDirectoryIfMissing)
 
 data AvailablePackages =
-    AvailablePackages { runAvailPackages :: Map PackageName (Set Version) }
+    AvailablePackages { runAvailPackages :: Map Text (Set Version) }
   deriving (Show)
 
 ourPackages :: AvailablePackages
 ourPackages =
   AvailablePackages $ Map.fromList
-    [ (PackageName "lens", Set.fromList
+    [ ("lens", Set.fromList
                  [ "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.0.1", "1.0.2", "1.0.3", "1.1", "1.1.1", "1.2", "1.3", "1.3.1", "1.4", "1.4.1", "1.5", "1.6", "1.7", "1.7.1", "1.8", "1.9", "1.9.1", "2.0", "2.1", "2.2", "2.3", "2.4", "2.4.0.2", "2.5", "2.6", "2.6.1", "2.7", "2.7.0.1", "2.8", "2.9", "3.0", "3.0.1", "3.0.2", "3.0.3", "3.0.4", "3.0.5", "3.0.6", "3.1", "3.2", "3.3", "3.4", "3.5", "3.5.1", "3.6", "3.6.0.1", "3.6.0.2", "3.6.0.3", "3.6.0.4", "3.7", "3.7.0.1", "3.7.0.2", "3.7.1", "3.7.1.1", "3.7.1.2", "3.7.2", "3.7.3", "3.7.4", "3.7.5", "3.7.6", "3.8", "3.8.0.1", "3.8.0.2", "3.8.1", "3.8.2", "3.8.3", "3.8.4", "3.8.5", "3.8.6", "3.8.7", "3.8.7.1", "3.8.7.2", "3.8.7.3", "3.9", "3.9.0.1", "3.9.0.2", "3.9.0.3", "3.9.1", "3.9.2", "3.10", "3.10.0.1", "3.10.1", "3.10.2", "4.0", "4.0.1", "4.0.2", "4.0.3", "4.0.4", "4.0.5", "4.0.6", "4.0.7", "4.1", "4.1.1", "4.1.2", "4.1.2.1"]
       )
     ]
@@ -63,10 +62,10 @@ downloadedPackages = do
                             if e
                             then return (Just v)
                             else return Nothing
-        return $ Just (PackageName pn, Set.fromList . map T.pack . catMaybes $ vl)
+        return $ Just (T.pack pn, Set.fromList . map T.pack . catMaybes $ vl)
   return . AvailablePackages . Map.fromList . filter (not . Set.null . snd) . catMaybes $ ps
 
-enumPackages :: Monad m => AvailablePackages -> C.Producer m (PackageName, Version)
+enumPackages :: Monad m => AvailablePackages -> C.Producer m (Text, Version)
 enumPackages ap = 
     forM_ (Map.toList . runAvailPackages $ ap) $ \(pn, vs) -> do
       forM_ (Set.toList vs) $ \v -> C.yield (pn, v)
@@ -74,7 +73,7 @@ enumPackages ap =
 buildIndex :: Monad m => C.Consumer (Document, Text) m DocIndex
 buildIndex = CL.foldMap (uncurry Index.singleton)
 
-processPackages :: MonadIO m => C.Conduit (PackageName, Version) m (Document, Text)
+processPackages :: MonadIO m => C.Conduit (Text, Version) m (Document, Text)
 processPackages =
     CL.concatMapM gae
   where
@@ -82,23 +81,20 @@ processPackages =
       t <- liftIO $ getPackage pn v
       return $ explodePackage pn v t
 
-pnm :: PackageName -> Text
-pnm (PackageName n) = T.pack n
-
-getPackage :: PackageName -> Version -> IO BSL.ByteString
+getPackage :: Text -> Version -> IO BSL.ByteString
 getPackage pn v = do
     e <- fileExist cacheFP
     case e of
       True -> BSL.readFile cacheFP
       False -> do
-        tb <- simpleHttp . T.unpack . T.concat $ ["http://hackage.haskell.org/package/",pnm pn,"-",v,"/",pnm pn,"-",v,".tar.gz"]
+        tb <- simpleHttp . T.unpack . T.concat $ ["http://hackage.haskell.org/package/",pn,"-",v,"/",pn,"-",v,".tar.gz"]
         createDirectoryIfMissing True (dropFileName cacheFP)
         BSL.writeFile cacheFP tb
         return tb
   where
-    cacheFP = (joinPath [cabalCache, T.unpack . pnm $ pn, T.unpack v, concat [T.unpack . pnm $ pn, "-", T.unpack v]]) `addExtension` "tar.gz"
+    cacheFP = (joinPath [cabalCache, T.unpack pn, T.unpack v, concat [T.unpack pn, "-", T.unpack v]]) `addExtension` "tar.gz"
 
-explodePackage :: PackageName -> Version -> BSL.ByteString -> [(Document, Text)]
+explodePackage :: Text -> Version -> BSL.ByteString -> [(Document, Text)]
 explodePackage pn v =
     Tar.foldEntries (\e o -> he e++o) [] (const []) . Tar.read . GZip.decompress
   where
@@ -125,7 +121,7 @@ loadAvailablePackages = do
         mkMap :: AvailablePackages -> [FilePath] -> AvailablePackages
         mkMap (AvailablePackages acc) ([packagename,packageVer,_])
             | (dropTrailingPathSeparator packagename) == "." = AvailablePackages acc
-            | otherwise          = AvailablePackages $ tweak (PackageName (dropTrailingPathSeparator packagename))
+            | otherwise          = AvailablePackages $ tweak (T.pack . dropTrailingPathSeparator $ packagename)
                                                              (T.pack $ dropTrailingPathSeparator packageVer) acc
                         where tweak pname pver m = Map.alter alterF pname m
                                   where alterF Nothing  = Just (Set.singleton pver)
