@@ -1,5 +1,5 @@
 module CodeSearch.Index
-  ( Index
+  ( Index(..)
   , DocIndex
   , mapIndex
   , queryIndex
