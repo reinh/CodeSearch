@@ -19,14 +19,17 @@ import Network.HTTP.Conduit (simpleHttp)
 import CodeSearch.Types.Document
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Set
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Distribution.Package
 import qualified Codec.Compression.GZip as GZip
 import CodeSearch.Index (DocIndex)
 import qualified CodeSearch.Index as Index
+import System.FilePath.Posix (dropFileName, addExtension, joinPath)
+import System.Posix.Files (fileExist)
+import System.Directory (getDirectoryContents, createDirectoryIfMissing)
 
-newtype AvailablePackages = AvailablePackages { runAvailPackages :: Map PackageName (Set Text) }
+newtype AvailablePackages = AvailablePackages { runAvailPackages :: Map PackageName (Set Version) }
 
 ourPackages :: AvailablePackages
 ourPackages =
@@ -36,9 +39,25 @@ ourPackages =
       )
     ]
 
-allPackages :: Monad m => C.Producer m (PackageName, Version)
-allPackages = 
-    forM_ (Map.toList . runAvailPackages $ ourPackages) $ \(pn, vs) -> do
+cabalCache :: FilePath
+cabalCache = "/home/davean/.cabal/packages/hackage.haskell.org/"
+
+downloadedPackages :: IO AvailablePackages
+downloadedPackages = do
+  pns <- getDirectoryContents cabalCache
+  ps <- forM pns $ \pn -> do
+    vs <- getDirectoryContents (joinPath [cabalCache, pn])
+    vl <- forM vs $ \ v -> do
+       e <- fileExist (joinPath [cabalCache, pn, v, concat [pn, "-", v]])
+       if e
+       then return (Just v)
+       else return Nothing
+    return (PackageName pn, Set.fromList . map T.pack . catMaybes $ vl)
+  return . AvailablePackages . Map.fromList . filter (not . Set.null . snd) $ ps
+
+enumPackages :: Monad m => AvailablePackages -> C.Producer m (PackageName, Version)
+enumPackages ap = 
+    forM_ (Map.toList . runAvailPackages $ ap) $ \(pn, vs) -> do
       forM_ (Set.toList vs) $ \v -> C.yield (pn, v)
 
 buildIndex :: Monad m => C.Consumer (Document, Text) m DocIndex
@@ -57,7 +76,16 @@ pnm (PackageName n) = T.pack n
 
 getPackage :: PackageName -> Version -> IO BSL.ByteString
 getPackage pn v = do
-  simpleHttp . T.unpack . T.concat $ ["http://hackage.haskell.org/package/",pnm pn,"-",v,"/",pnm pn,"-",v,".tar.gz"]
+    e <- fileExist cacheFP
+    case e of
+      True -> BSL.readFile cacheFP
+      False -> do
+        tb <- simpleHttp . T.unpack . T.concat $ ["http://hackage.haskell.org/package/",pnm pn,"-",v,"/",pnm pn,"-",v,".tar.gz"]
+        createDirectoryIfMissing True (dropFileName cacheFP)
+        BSL.writeFile cacheFP tb
+        return tb
+  where
+    cacheFP = (joinPath [cabalCache, T.unpack . pnm $ pn, T.unpack v, concat [T.unpack . pnm $ pn, "-", T.unpack v]]) `addExtension` "tar.gz"
 
 explodePackage :: PackageName -> Version -> BSL.ByteString -> [(Document, Text)]
 explodePackage pn v =
@@ -70,7 +98,6 @@ explodePackage pn v =
                  Left _ -> []
                  Right tx -> [(fp2d (Tar.entryPath e), tx)]
              _ -> []
-
 
 {-
 

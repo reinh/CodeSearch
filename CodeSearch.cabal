@@ -22,22 +22,27 @@ library
       src
   exposed-modules:
       CodeSearch
+    , CodeSearch.DocumentQuery
     , CodeSearch.Expr
     , CodeSearch.Index
-    , CodeSearch.Query
     , CodeSearch.Regexp
     , CodeSearch.Shrink
     , CodeSearch.Trigrams
     , CodeSearch.Types
+    , CodeSearch.Types.Document
+    , CodeSearch.Types.Expr
+    , CodeSearch.Types.Query
     , CodeSearch.Util
     , CodeSearch.LoadHackage
   build-depends:
       base    == 4.*
+    , attoparsec
     , bytestring
     , containers
     , mtl
     , lens
     , reducers
+    , regex-tdfa
     , semigroups
     , text
     , Cabal
@@ -46,6 +51,9 @@ library
     , conduit
     , http-conduit
     , feed
+    , filepath
+    , unix
+    , directory
   default-language:
       Haskell2010
 
