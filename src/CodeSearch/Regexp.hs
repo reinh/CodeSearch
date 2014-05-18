@@ -5,7 +5,7 @@ import           CodeSearch.Types
 
 import Control.Applicative
 import           Data.Attoparsec.Text
-import           Data.Text            (Text)
+import           Data.Text            (Text, unpack)
 
 parseRegexp :: Text -> Either String RegExpr
 parseRegexp = fmap shrinkExpr . parseOnly pRegex
@@ -17,7 +17,7 @@ pRegex = alts <$> sepBy1 pBranch (char '|')
 
 pBranch = pAtom >>= pPostAtom
 
-pAtom = pGroup <|> pBracket <|> pChar
+pAtom = pGroup <|> pBracket <|> pChars
 
 pPostAtom :: RegExpr -> Parser RegExpr
 pPostAtom atom = (char '?' >> return (ZeroOrOne atom))
@@ -28,5 +28,9 @@ pPostAtom atom = (char '?' >> return (ZeroOrOne atom))
 pGroup = fmap concats $ char '(' *> manyTill pChar (char ')')
 
 pBracket = fmap alts $ char '[' *> manyTill pChar (char ']')
+
+pChars :: Parser RegExpr
+pChars = concats . fmap Single . unpack <$> takeTill special
+  where special = inClass "?*+|"
 
 pChar = Single <$> anyChar
