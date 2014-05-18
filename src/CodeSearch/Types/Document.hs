@@ -1,15 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module CodeSearch.Types.Document
-  ( Document(..)
+  ( Version, Document(..)
   ) where
 
+import Data.Text (Text)
 import Distribution.Package
-import Distribution.Version
 import           Control.Lens
---import           Data.ByteString (ByteString)
 
-type Repo = String
+type Version = Text
 
-data Document = Document { _repo :: Repo, _pName :: PackageName, _pVersion :: Version, _path :: FilePath }
+data Document =
+    Document { _pName :: PackageName, _pVersion :: Version, _path :: FilePath }
   deriving (Eq,Ord,Show,Read)

@@ -30,15 +30,22 @@ library
     , CodeSearch.Trigrams
     , CodeSearch.Types
     , CodeSearch.Util
+    , CodeSearch.LoadHackage
   build-depends:
       base    == 4.*
     , bytestring
     , containers
+    , mtl
     , lens
     , reducers
     , semigroups
     , text
     , Cabal
+    , zlib
+    , tar
+    , conduit
+    , http-conduit
+    , feed
   default-language:
       Haskell2010
 
