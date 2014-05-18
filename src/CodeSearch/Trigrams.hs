@@ -1,7 +1,5 @@
 module CodeSearch.Trigrams
-  ( trigrams
-  , transformWith
-  , Transform(..)
+  ( build
   ) where
 
 import           CodeSearch.Expr
@@ -26,10 +24,12 @@ trigrams = shrinkTrigram . option Any id . foldMap (pure . trigrams') . toList
 data Transform = Prefix | Suffix | Exact
 
 -- Information saving transformations
-transformWith :: Transform -> Expr Char -> TrigramQuery
+transformWith :: Transform -> RegExpr -> TrigramQuery
 transformWith trans = shrinkTrigram . transformWith' trans
   where
     transformWith' Prefix = And <$> match <*> trigrams . prefix
     transformWith' Suffix = And <$> match <*> trigrams . suffix
     transformWith' Exact  = And <$> match <*> maybe Any trigrams . exact
 
+build :: RegExpr -> TrigramQuery
+build = transformWith Exact

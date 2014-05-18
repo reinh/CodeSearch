@@ -22,19 +22,25 @@ library
       src
   exposed-modules:
       CodeSearch
+    , CodeSearch.DocumentQuery
     , CodeSearch.Expr
     , CodeSearch.Index
-    , CodeSearch.Query
     , CodeSearch.Regexp
     , CodeSearch.Shrink
     , CodeSearch.Trigrams
     , CodeSearch.Types
+    , CodeSearch.Types.Document
+    , CodeSearch.Types.Expr
+    , CodeSearch.Types.Query
+
     , CodeSearch.Util
   build-depends:
       base    == 4.*
+    , attoparsec
     , containers
     , lens
     , reducers
+    , regex-tdfa
     , semigroups
     , text
   default-language:
@@ -52,7 +58,7 @@ test-suite spec
   build-depends:
       base    == 4.*
     , codesearch
-    , bytestring
     , containers
     , hspec   >= 1.3
     , QuickCheck
+    , text
