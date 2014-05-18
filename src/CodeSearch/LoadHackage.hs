@@ -84,14 +84,14 @@ processPackages =
       t <- liftIO $ getPackage pn v
       return $ explodePackage pn v t
 
-searchPackages :: Monad m => Text -> Set Document
-                          -> C.Producer m (Document, [(MatchOffset, MatchLength)], Text)
+searchPackages :: MonadIO m => Text -> Set Document
+                            -> C.Producer m (Document, [(MatchOffset, MatchLength)], Text)
 searchPackages rgx ds = do
   CL.sourceList (Set.toList ds) $=
     CL.map (\d -> (_pName d, _pVersion d)) $=
     processPackages $=
     CL.filter (\(d, _) -> Set.member d ds) $=
-    CL.mapM (\(d, t) ->
+    CL.mapMaybe (\(d, t) ->
           case searchText rgx t of
             Left _ -> Nothing
             Right [] -> Nothing
