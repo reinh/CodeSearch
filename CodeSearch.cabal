@@ -26,6 +26,7 @@ library
     , CodeSearch.Expr
     , CodeSearch.Index
     , CodeSearch.Regexp
+    , CodeSearch.RegexSearch
     , CodeSearch.Shrink
     , CodeSearch.Trigrams
     , CodeSearch.Types
@@ -56,6 +57,9 @@ library
     , unix
     , directory
     , bytes
+    , regex-base
+    , regex-tdfa-text
+    , array
   default-language:
       Haskell2010
 
