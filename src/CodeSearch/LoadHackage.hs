@@ -31,6 +31,7 @@ import System.Posix.Files (fileExist, isDirectory, getFileStatus)
 import System.Directory (getDirectoryContents, createDirectoryIfMissing)
 import           Text.Regex.Base.RegexLike (MatchLength, MatchOffset)
 import CodeSearch.RegexSearch
+import CodeSearch.DocumentQuery
 
 data AvailablePackages =
     AvailablePackages { runAvailPackages :: Map Text (Set Version) }
@@ -44,6 +45,12 @@ ourPackages =
                             "3.10.1", "3.10.2", "4.0", "4.0.1", "4.0.2", "4.0.3", "4.0.4", "4.0.5", "4.0.6", "4.0.7", "4.1", "4.1.1", "4.1.2", "4.1.2.1"]
       )
     ]
+
+search :: MonadIO m => DocIndex -> Text -> C.Producer m (Document, [(MatchOffset, MatchLength)], Text)
+search idx rgx  = do
+  case query idx rgx of
+    Nothing -> CL.sourceList []
+    Just s -> searchPackages rgx s
 
 cabalCache :: FilePath
 cabalCache = "/home/davean/.cabal/packages/hackage.haskell.org/"
@@ -88,7 +95,7 @@ processPackages =
 prettyResult :: Monad m => C.Conduit (Document, [(MatchOffset, MatchLength)], Text) m Text
 prettyResult =
   CL.concatMap (\(d, ms, t) ->
-               let fm = \(s, e) -> T.concat [T.pack . show $ d, T.pack . show $ (s, e), " \"... ", T.take (e+20) . T.drop (max 0 (s - 10)) $ t, " ...\""]
+               let fm = \(s, e) -> T.concat [T.pack . show $ d, " ", T.pack . show $ (s, e), "  \"... ", T.take (e+20) . T.drop (max 0 (s - 10)) $ t, " ...\""]
                in map fm ms)
 
 searchPackages :: MonadIO m => Text -> Set Document
