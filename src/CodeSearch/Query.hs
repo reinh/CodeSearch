@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 
-module CodeSearch.Types.Query
+module CodeSearch.Query
   ( Query(..)
   , TrigramQuery
   ) where

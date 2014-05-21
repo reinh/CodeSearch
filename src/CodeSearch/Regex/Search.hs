@@ -1,4 +1,4 @@
-module CodeSearch.RegexSearch (searchText) where
+module CodeSearch.Regex.Search (searchText) where
 
 import           Data.Array                ((!))
 import           Data.Text                 (Text)

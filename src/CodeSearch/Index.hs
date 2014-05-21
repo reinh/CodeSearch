@@ -1,16 +1,17 @@
+{-# LANGUAGE BangPatterns #-}
+
 module CodeSearch.Index
   ( Index(..)
   , DocIndex
   , getA
---  , mapIndex
   , queryIndex
   , singleton
   ) where
 
-import           CodeSearch.Types
+import CodeSearch.Document
 
 import           Control.Applicative
-import           Data.Map.Strict  (Map, union)
+import           Data.Map.Strict  (Map)
 import qualified Data.Map.Strict  as Map
 import           Data.Bimap (Bimap)
 import qualified Data.Bimap as Bimap
@@ -37,23 +38,12 @@ instance (Ord a, Serial a) => Serial (Index a) where
 getA :: Ord a => Index a -> Int -> Maybe a
 getA (Index s _) i = Bimap.lookupR i s
 
-repInt :: Map Int Int -> Map Trigram IntSet -> Map Trigram IntSet
-repInt l = Map.map (ISet.map (\v -> fromJust $ Map.lookup v l))
-
-{-mapIndex :: (Ord a, Ord b) => (a -> b) -> Index a -> Index b
-mapIndex f (Index s idx) =
-    let (t, ns) = Map.foldlWithKey (\(t, i) d o ->
-                                        let n = f d
-                                            ci = Map.insertWith 
-                                        in (Map.insert )) s
-    in Index ns (repInt t idx)
--}
 instance Ord a => Monoid (Index a) where
   mempty = Index Bimap.empty mempty
-  mappend (Index s idx) (Index s' idx') =
-    let newS = Bimap.fold (\a b c -> Bimap.tryInsert a (Bimap.size c) c) s s'
-        newIdx = (Map.unionWith ISet.union idx (Map.map (ISet.map (\i -> fromJust (Bimap.lookupR i s' >>= (flip Bimap.lookup $ newS)))) idx'))
-    in newS `seq` newIdx `seq` Index newS newIdx
+  mappend (Index s idx) (Index s' idx') = Index newS newIdx
+    where
+      !newS = Bimap.fold (\a _ c -> Bimap.tryInsert a (Bimap.size c) c) s s'
+      !newIdx = Map.unionWith ISet.union idx (Map.map (ISet.map (\i -> fromJust (Bimap.lookupR i s' >>= flip Bimap.lookup newS))) idx')
 
 singleton :: Document -> Text -> DocIndex
 singleton = addToIndex mempty

@@ -1,5 +1,12 @@
-module CodeSearch.Expr
-  ( shrinkExpr
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveTraversable #-}
+
+module CodeSearch.Regex.Expr
+  ( Expr(..)
+  , RegExpr
+  , shrinkExpr
   , emptyable
   , exact
   , prefix
@@ -7,12 +14,30 @@ module CodeSearch.Expr
   , match
   ) where
 
-import           CodeSearch.Shrink
-import           CodeSearch.Types
+import           CodeSearch.Query.Shrink (shrinkTrigram)
+import           CodeSearch.Query
 import           CodeSearch.Util
 
 import           Control.Applicative
-import           Data.Set            (Set, singleton, union)
+import           Control.Lens
+import           Data.Data               (Data, Typeable)
+import           Data.Foldable           (Foldable)
+import           Data.Set                (Set, singleton, union)
+
+data Expr a
+  = Empty
+  | Single !a                  -- a
+  | ZeroOrOne !(Expr a)        -- a?
+  | ZeroOrMore !(Expr a)       -- a*
+  | OneOrMore !(Expr a)        -- a+
+  | Alt !(Expr a) !(Expr a)    -- a|b
+  | Concat !(Expr a) !(Expr a) -- ab
+  deriving (Eq,Ord,Show,Read,Data,Typeable,Functor,Foldable,Traversable)
+
+type RegExpr = Expr Char
+
+infixr 6 `Concat`
+infixr 7 `Alt`
 
 shrinkExpr :: RegExpr -> RegExpr
 shrinkExpr (e `Concat` Empty) = e

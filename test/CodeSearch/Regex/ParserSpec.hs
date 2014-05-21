@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module CodeSearch.RegexpSpec (main, spec) where
+module CodeSearch.Regex.ParserSpec (main, spec) where
 
-import           CodeSearch.Regexp
+import           CodeSearch.Regex.Parser
 import           CodeSearch.Types
 import           Control.Monad     (forM_)
 import           Data.Text         (pack)

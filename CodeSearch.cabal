@@ -22,17 +22,15 @@ library
       src
   exposed-modules:
       CodeSearch
+    , CodeSearch.Document
     , CodeSearch.DocumentQuery
-    , CodeSearch.Expr
     , CodeSearch.Index
-    , CodeSearch.Regexp
-    , CodeSearch.RegexSearch
-    , CodeSearch.Shrink
-    , CodeSearch.Trigrams
-    , CodeSearch.Types
-    , CodeSearch.Types.Document
-    , CodeSearch.Types.Expr
-    , CodeSearch.Types.Query
+    , CodeSearch.Regex.Expr
+    , CodeSearch.Regex.Parser
+    , CodeSearch.Regex.Search
+    , CodeSearch.Query
+    , CodeSearch.Query.Shrink
+    , CodeSearch.Query.Trigram
     , CodeSearch.Util
     , CodeSearch.LoadHackage
   build-depends:
@@ -50,7 +48,7 @@ library
     , Cabal
     , zlib
     , tar
-    , conduit
+    , conduit >= 1.1
     , http-conduit
     , feed
     , filepath

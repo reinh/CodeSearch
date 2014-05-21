@@ -1,9 +1,9 @@
-module CodeSearch.Shrink
+module CodeSearch.Query.Shrink
   ( shrinkTrigramExpr
   , shrinkTrigram
   ) where
 
-import           CodeSearch.Types
+import           CodeSearch.Query
 import           CodeSearch.Util
 
 import           Control.Lens (transform)

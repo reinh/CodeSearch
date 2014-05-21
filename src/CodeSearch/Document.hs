@@ -1,13 +1,11 @@
-{-# LANGUAGE TemplateHaskell #-}
-
-module CodeSearch.Types.Document
-  ( Version, Document(..)
+module CodeSearch.Document
+  ( Version
+  , Document(..)
   ) where
 
-import Control.Applicative
-import Data.Text (Text)
-import           Control.Lens
-import Data.Bytes.Serial
+import           Control.Applicative
+import           Data.Bytes.Serial
+import           Data.Text           (Text)
 
 type Version = Text
 

@@ -1,10 +1,10 @@
-module CodeSearch.Trigrams
+module CodeSearch.Query.Trigram
   ( build
   ) where
 
-import           CodeSearch.Expr
-import           CodeSearch.Shrink
-import           CodeSearch.Types
+import           CodeSearch.Regex.Expr
+import           CodeSearch.Query.Shrink
+import           CodeSearch.Query
 
 import           Control.Applicative
 import           Data.Foldable       (foldMap)

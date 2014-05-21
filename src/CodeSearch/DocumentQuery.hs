@@ -2,29 +2,35 @@ module CodeSearch.DocumentQuery
   ( query
   ) where
 
-import           CodeSearch.Index    (DocIndex, queryIndex, getA)
-import           CodeSearch.Regexp   (parseRegexp)
-import           CodeSearch.Trigrams (build)
-import           CodeSearch.Types    (Document, Query (..), RegExpr)
+import           CodeSearch.Document      (Document(..))
+import           CodeSearch.Index         (DocIndex, getA, queryIndex)
+import           CodeSearch.Query         (Query (..))
+import           CodeSearch.Query.Trigram (build)
+import           CodeSearch.Regex.Expr    (RegExpr)
+import           CodeSearch.Regex.Parser  (parseRegexp)
 
-import           Data.Maybe
 import           Control.Applicative
-import           Data.Set            (Set)
-import qualified Data.Set as Set
-import           Data.IntSet (IntSet)
-import qualified Data.IntSet as ISet
-import           Data.Text           (Text, pack)
+import           Data.IntSet              (IntSet)
+import qualified Data.IntSet              as ISet
+import           Data.Set                 (Set)
+import qualified Data.Set                 as Set
+import           Data.Text                (Text, pack)
+
+query :: DocIndex -> Text -> Maybe (Set Document)
+query idx rgx =
+    fmap (ISet.foldl' update Set.empty)
+         (parsedRegex >>= compile)
+  where
+    parsedRegex :: Maybe RegExpr
+    parsedRegex = eitherToMaybe (parseRegexp rgx)
+    update :: Set Document -> Int -> Set Document
+    update a = Set.union a . maybe Set.empty Set.singleton . getA idx
+    compile :: RegExpr -> Maybe IntSet
+    compile = reduce . fmap (queryIndex idx . pack) . build
 
 eitherToMaybe :: Either a b -> Maybe b
 eitherToMaybe (Left _) = Nothing
 eitherToMaybe (Right x) = Just x
-
-query :: DocIndex -> Text -> Maybe (Set Document)
-query idx txt =
-    fmap (ISet.foldl' (\a -> Set.union a . maybe Set.empty Set.singleton . getA idx) Set.empty) ((eitherToMaybe (parseRegexp txt)) >>= compile)
-  where
-    compile :: RegExpr -> Maybe IntSet
-    compile = reduce . fmap (queryIndex idx . pack) . build
 
 -- Reduce a Query over sets of documents to either a single set or Nothing,
 -- which represents our inability to reduce the search space.
